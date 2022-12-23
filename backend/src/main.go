@@ -2,22 +2,16 @@ package main
 
 import (
 	"fmt"
-	"net/http"
+	router "schedulii/src/routes"
 
 	"github.com/gin-gonic/gin"
 )
 
-func setUpRouter() *gin.Engine {
-	r := gin.Default()
-	r.GET("/", func (c *gin.Context) {
-		c.String(http.StatusOK, "Hello World")
-	})
-	return r
-}
-
 func main() {
-	r := setUpRouter()
-	err := r.Run(":8080");
+	ginEngine := gin.Default()
+	router.SetupRoutes(ginEngine)
+
+	err := ginEngine.Run(":8080")
 	if err != nil {
 		fmt.Println("Error starting server")
 	}
