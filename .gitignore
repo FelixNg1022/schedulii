@@ -1,4 +1,9 @@
 .env
 credentials.json
 token.json
+vendor
+
 .DS_Store
+.vscode
+
+bin
