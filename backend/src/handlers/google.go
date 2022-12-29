@@ -27,14 +27,14 @@ func RunGoogleConnection(c *gin.Context) {
 		c.Abort()
 		return
 	}
-	
+
 	client := config.Client(context.Background(), tok)
-	
+
 	srv, err := calendar.NewService(ctx, option.WithHTTPClient(client))
 	if err != nil {
 		log.Fatalf("Unable to retrieve calendar client: %v", err)
 	}
-	
+
 	cal, err := srv.CalendarList.List().Do()
 	if err != nil {
 		log.Fatalf("Unable to retrieve data from calendars: %v", err)
