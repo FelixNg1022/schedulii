@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	models "schedulii/src/models"
 	"time"
 
 	"golang.org/x/oauth2"
@@ -13,19 +14,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 )
-
-// Define a struct that represents a Google calendar event
-type calendarEvent struct {
-	Summary string `json:"summary"`
-	Start   Time   `json:"start"`
-	End     Time   `json:"end"`
-}
-
-// Define a struct that represents a time in a Google calendar event
-type Time struct {
-	DateTime string `json:"dateTime"`
-	TimeZone string `json:"timeZone"`
-}
 
 func GetCalendars(c *gin.Context) {
 	c.String(http.StatusOK, "Hello World")
@@ -63,15 +51,15 @@ func GetUserCalendarEvents(c *gin.Context) {
 		log.Fatalf("Unable to retrieve the user's events for the next month: %v", err)
 	}
 
-	var calendarEvents []calendarEvent
+	var calendarEvents []models.CalendarEvent
 	for _, item := range events.Items {
-		ce := calendarEvent{
+		ce := models.CalendarEvent{
 			Summary: item.Summary,
-			Start: Time{
+			Start: models.Time{
 				DateTime: item.Start.DateTime,
 				TimeZone: item.Start.TimeZone,
 			},
-			End: Time{
+			End: models.Time{
 				DateTime: item.End.DateTime,
 				TimeZone: item.End.TimeZone,
 			},
@@ -82,6 +70,52 @@ func GetUserCalendarEvents(c *gin.Context) {
 	b, err := json.Marshal(calendarEvents)
 	if err != nil {
 		log.Fatalf("Unable to marshal events: %v", err)
+	}
+
+	c.JSON(http.StatusOK, b)
+}
+
+func GetCalendarList(c *gin.Context) {
+	ctx := context.Background()
+
+	config := readGoogleAPICredentials()
+
+	tok, valid := tokenFromSession(c)
+	if !valid {
+		authURL := config.AuthCodeURL("state-token", oauth2.AccessTypeOffline, oauth2.ApprovalForce)
+		c.Redirect(http.StatusFound, authURL)
+		c.Abort()
+		return
+	}
+
+	client := config.Client(ctx, tok)
+
+	// Creates a Google Calendar Service
+	svc, err := calendar.NewService(ctx, option.WithHTTPClient(client))
+	if err != nil {
+		log.Fatalf("Unable to retrieve Calendar client: %v", err)
+	}
+
+	// Retrieves the user's list of calendars
+	calendarList, err := svc.CalendarList.List().Do()
+	if err != nil {
+		log.Fatalf("Unable to retrieve the user's list of calendars: %v", err)
+	}
+
+	var calendars []models.CalendarEntry
+	for _, item := range calendarList.Items {
+		ce := models.CalendarEntry{
+			Id:       item.Id,
+			Location: item.Location,
+			Summary:  item.Summary,
+			TimeZone: item.TimeZone,
+		}
+		calendars = append(calendars, ce)
+	}
+
+	b, err := json.Marshal(calendars)
+	if err != nil {
+		log.Fatalf("Unable to marshal calendar: %v", err)
 	}
 
 	c.JSON(http.StatusOK, b)
